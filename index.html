@@ -127,7 +127,7 @@
             </button>
           </div>
 
-          <div id="menu" class="hidden md:flex flex-1 justify-end gap-8">
+          <div id="desktopMenu" class="hidden md:flex flex-1 justify-end gap-8">
             <div class="flex items-center gap-9">
               <a
                 class="text-sm font-medium leading-normal text-text-light"
@@ -244,7 +244,7 @@
               </div>
             </section>
 
-            <section class="text-center" id="about">
+            <section class="text-center scroll-mt-[1rem]" id="about">
               <h2
                 class="text-3xl font-bold leading-tight tracking-[-0.015em] pb-4"
               >
@@ -261,7 +261,7 @@
               </p>
             </section>
 
-            <section class="relative" id="menu">
+            <section class="relative scroll-mt-[1rem]" id="menu">
               <h2
                 class="text-3xl font-bold leading-tight tracking-[-0.015em] pb-8 text-center"
               >
@@ -472,7 +472,7 @@
               </div>
             </section>
 
-            <section class="text-center" id="gallery">
+            <section class="text-center scroll-mt-[1rem]" id="gallery">
               <h2
                 class="text-3xl font-bold leading-tight tracking-[-0.015em] pb-8"
               >
@@ -560,7 +560,7 @@
               </div>
             </section>
 
-            <section class="text-center" id="contact">
+            <section class="text-center scroll-mt-[1rem]" id="contact">
               <h2
                 class="text-3xl font-bold leading-tight tracking-[-0.015em] pb-8"
               >
@@ -699,167 +699,284 @@
 
     <!-- Scripts: functionality only, no style changes -->
     <script>
-      /***************************************************************
-       * CONFIG - Update businessNumber (international format, no +) *
-       ***************************************************************/
-      const businessNumber = "919691042258"; // <--- REPLACE with actual number (e.g. 919876543210)
-      const headerWhatsappBtn = document.getElementById("headerWhatsappBtn");
-      const heroWhatsappBtn = document.getElementById("heroWhatsappBtn");
-      const mobileWhatsappBtn = document.getElementById("mobileWhatsappBtn");
-      const whatsappFab = document.getElementById("whatsappFab");
-
-      // Initialize WhatsApp links
-      function setWhatsappLinks() {
-        const msg = encodeURIComponent(
-          "Hello, I want to order from your bakery."
-        );
+  /***************************************************************
+   * Consolidated script: WhatsApp links, mobile menu, anchors,
+   * carousel touch handling, form submit popup. Minimal changes
+   * only to behavior — no style changes.
+   ***************************************************************/
+  document.addEventListener("DOMContentLoaded", function () {
+    // WhatsApp links setup (keep original behavior)
+    const businessNumber = "919691042258";
+    const headerWhatsappBtn = document.getElementById("headerWhatsappBtn");
+    const heroWhatsappBtn = document.getElementById("heroWhatsappBtn");
+    const mobileWhatsappBtn = document.getElementById("mobileWhatsappBtn");
+    const whatsappFab = document.getElementById("whatsappFab");
+    function setWhatsappLinks() {
+      try {
+        const msg = encodeURIComponent("Hello, I want to order from your bakery.");
         const base = "https://wa.me/" + businessNumber + "?text=" + msg;
         if (headerWhatsappBtn) headerWhatsappBtn.href = base;
         if (heroWhatsappBtn) heroWhatsappBtn.href = base;
         if (mobileWhatsappBtn) mobileWhatsappBtn.href = base;
         if (whatsappFab) whatsappFab.href = base;
+      } catch (e) {}
+    }
+    setWhatsappLinks();
+
+    // --- Mobile menu toggle (robust, uses IDs present in markup) ---
+    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const headerEl = document.querySelector("header");
+
+    function setMenuState(open) {
+      if (!mobileMenu || !mobileMenuBtn) return;
+      mobileMenu.classList.toggle("open", open);
+      mobileMenu.classList.toggle("hidden", !open);
+      // inline style fallback for environments without Tailwind's hidden
+      mobileMenu.style.display = open ? "" : "none";
+      mobileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      document.body.classList.toggle("overflow-hidden", open);
+    }
+
+    // Normalize initial state: hide unless explicitly open
+    if (mobileMenu) {
+      if (!mobileMenu.classList.contains("open")) {
+        mobileMenu.classList.add("hidden");
+        mobileMenu.style.display = "none";
+      } else {
+        mobileMenu.classList.remove("hidden");
+        mobileMenu.style.display = "";
       }
-      setWhatsappLinks();
+    }
 
-      // Mobile menu toggle - toggles the dedicated mobile dropdown (doesn't touch desktop menu)
-      document
-        .getElementById("mobileMenuBtn")
-        ?.addEventListener("click", function () {
-          const mobileMenu = document.getElementById("mobileMenu");
-          if (!mobileMenu) return;
-          const willOpen = mobileMenu.classList.toggle("open");
-          // keep hidden class in sync if needed (some tailwind setups)
-          if (willOpen) {
-            mobileMenu.classList.remove("hidden");
-          } else {
-            mobileMenu.classList.add("hidden");
-          }
-          // accessibility
-          this.setAttribute("aria-expanded", willOpen ? "true" : "false");
-        });
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener("click", function () {
+        const isOpen = mobileMenu && mobileMenu.classList.contains("open");
+        setMenuState(!isOpen);
+      });
+    }
 
-     
-
-      // Carousel functionality (prev/next + touch friendly)
-      (function () {
-        const carousel = document.getElementById("menuCarousel");
-        const prevBtn = document.getElementById("menuPrev");
-        const nextBtn = document.getElementById("menuNext");
-        if (!carousel) return;
-
-        function scrollByCard(direction = 1) {
-          // amount: 80% of container width
-          const amount = Math.round(carousel.clientWidth * 0.8);
-          carousel.scrollBy({ left: amount * direction, behavior: "smooth" });
-        }
-
-        prevBtn?.addEventListener("click", () => scrollByCard(-1));
-        nextBtn?.addEventListener("click", () => scrollByCard(1));
-
-        // Make keyboard accessible: left/right arrows when focused inside carousel
-        carousel.addEventListener("keydown", (e) => {
-          if (e.key === "ArrowLeft") {
-            scrollByCard(-1);
-          }
-          if (e.key === "ArrowRight") {
-            scrollByCard(1);
-          }
-        });
-
-        // Touch: add slight snap on dragend for browsers without perfect snap support
-        let isDown = false,
-          startX = 0,
-          scrollStart = 0;
-        carousel.addEventListener("pointerdown", (e) => {
-          isDown = true;
-          startX = e.pageX;
-          scrollStart = carousel.scrollLeft;
-          carousel.setPointerCapture(e.pointerId);
-        });
-        carousel.addEventListener("pointermove", (e) => {
-          if (!isDown) return;
-          const dx = e.pageX - startX;
-          carousel.scrollLeft = scrollStart - dx;
-        });
-        carousel.addEventListener("pointerup", (e) => {
-          isDown = false;
-          // optional: snap to nearest card
-          const cardWidth =
-            carousel.querySelector('[class*="snap-center"]')?.clientWidth ||
-            Math.round(carousel.clientWidth * 0.8);
-          const idx = Math.round(carousel.scrollLeft / (cardWidth + 16)); // 16 ~ gap
-          carousel.scrollTo({
-            left: idx * (cardWidth + 16),
-            behavior: "smooth",
-          });
-        });
-        carousel.addEventListener("pointercancel", () => (isDown = false));
-      })();
-
-      // Show floating WhatsApp FAB on larger screens only if businessNumber set
-      (function () {
-        if (businessNumber && businessNumber.length >= 8) {
-          whatsappFab?.classList.remove("hidden");
-        }
-      })();
-
-      // Smooth internal link scrolling
-      document.querySelectorAll('a[href^="#"]').forEach((a) => {
-        a.addEventListener("click", function (e) {
-          const target = document.querySelector(this.getAttribute("href"));
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: "smooth", block: "start" });
-            // if mobile menu is open, close it after navigation
-            const mobileMenu = document.getElementById("mobileMenu");
-            if (mobileMenu && mobileMenu.classList.contains("open")) {
-              mobileMenu.classList.remove("open");
-              mobileMenu.classList.add("hidden");
-              const btn = document.getElementById("mobileMenuBtn");
-              if (btn) btn.setAttribute("aria-expanded", "false");
-            }
-          }
+    // Ensure clicking links inside mobile menu closes it
+    if (mobileMenu) {
+      mobileMenu.querySelectorAll("a").forEach((lnk) => {
+        lnk.addEventListener("click", function () {
+          setMenuState(false);
         });
       });
-   
-        const form = document.getElementById("contactForm");
-const submitBtn = document.getElementById("submitBtn");
-const btnText = document.getElementById("btnText");
-const btnLoader = document.getElementById("btnLoader");
+    }
 
-const successPopup = document.getElementById("successPopup");
-const closePopupBtn = document.getElementById("closePopup");
+    // --- Anchor handling: single robust handler ---
+    function closeMobileMenu() {
+      setMenuState(false);
+    }
 
-// Form submission
-form.addEventListener("submit", function (e) {
-  e.preventDefault();
+    function parsePx(value) {
+      if (!value) return 0;
+      // getComputedStyle tends to return pixels for scrollMarginTop, but ensure parsing
+      const n = parseFloat(value);
+      return isNaN(n) ? 0 : n;
+    }
 
-  btnText.textContent = "Sending...";
-  btnLoader.classList.remove("hidden");
-  submitBtn.disabled = true;
+    
+function handleAnchorClick(e) {
+      const anchor = e.currentTarget;
+      const href = anchor.getAttribute("href");
+      if (!href || !href.startsWith("#") || href === "#") return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
 
-  const formData = new FormData(form);
+      // If mobile menu is open, close it first so it doesn't affect layout/offsets.
+      const wasMenuOpen = mobileMenu && mobileMenu.classList.contains("open");
+      if (wasMenuOpen) {
+        setMenuState(false);
+      }
 
-  fetch(form.action, {
-    method: "POST",
-    body: formData,
-    mode: "no-cors" // prevents network error from breaking
-  })
-    .finally(() => {
-      btnText.textContent = "Send Message";
-      btnLoader.classList.add("hidden");
-      submitBtn.disabled = false;
-      form.reset();
-      successPopup.classList.remove("hidden"); // show popup
+      // Use next animation frame to ensure closing the menu updates layout before measuring.
+      requestAnimationFrame(() => {
+        // 1) Try CSS scroll-margin-top first (computed)
+        let scrollMarginTopPx = 0;
+        try {
+          const cs = getComputedStyle(target);
+          scrollMarginTopPx = parsePx(cs && cs.scrollMarginTop);
+        } catch (err) {
+          scrollMarginTopPx = 0;
+        }
+
+        // 2) If computed scroll margin is smaller than header, prefer header height
+        let headerHeight = 0;
+        if (headerEl && headerEl.offsetHeight) headerHeight = headerEl.offsetHeight + 8;
+
+        if (headerHeight && scrollMarginTopPx < headerHeight) {
+          scrollMarginTopPx = headerHeight;
+        }
+
+        const top = Math.round(target.getBoundingClientRect().top + window.scrollY - scrollMarginTopPx);
+
+        window.scrollTo({
+          top,
+          behavior: "smooth",
+        });
+
+        // ensure mobile menu remains closed (defensive)
+        if (wasMenuOpen) {
+          setMenuState(false);
+        }
+      });
+    }
+
+    // Attach handler to all anchors
+    Array.from(document.querySelectorAll('a[href^="#"]')).forEach((a) => {
+      a.addEventListener("click", handleAnchorClick, { passive: false });
     });
-});
 
-// Close popup on button click
-closePopupBtn.addEventListener("click", () => {
-  successPopup.classList.add("hidden");
-});
+    // --- Carousel: improve touch handling so vertical scroll still works ---
+    (function () {
+      const carousel = document.getElementById("menuCarousel");
+      const prevBtn = document.getElementById("menuPrev");
+      const nextBtn = document.getElementById("menuNext");
+      if (!carousel) return;
 
+      function scrollByCard(direction = 1) {
+        const amount = Math.round(carousel.clientWidth * 0.8);
+        carousel.scrollBy({ left: amount * direction, behavior: "smooth" });
+      }
+      prevBtn?.addEventListener("click", () => scrollByCard(-1));
+      nextBtn?.addEventListener("click", () => scrollByCard(1));
 
-    </script>
+      // keyboard support when focused inside carousel
+      carousel.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft") scrollByCard(-1);
+        if (e.key === "ArrowRight") scrollByCard(1);
+      });
+
+      // Allow vertical scrolling when user intends vertical swipe.
+      // Use pointer events and only handle horizontal drags when horizontal movement
+      // clearly exceeds vertical movement.
+      carousel.style.touchAction = "pan-y"; // allow vertical panning by default
+
+      let pointerActive = false;
+      let startX = 0,
+        startY = 0,
+        scrollStart = 0;
+      let isDragging = false;
+      const HORIZONTAL_THRESHOLD = 8; // pixels before we decide it's a horizontal drag
+
+      carousel.addEventListener("pointerdown", function (e) {
+        pointerActive = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollStart = carousel.scrollLeft;
+        isDragging = false;
+        try {
+          carousel.setPointerCapture(e.pointerId);
+        } catch (err) {}
+      });
+
+      carousel.addEventListener("pointermove", function (e) {
+        if (!pointerActive) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (!isDragging) {
+          // decide if it's a horizontal drag or vertical scroll
+          if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > HORIZONTAL_THRESHOLD) {
+            isDragging = true;
+          } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > HORIZONTAL_THRESHOLD) {
+            // user is performing vertical scroll — release pointer and allow page to scroll
+            try {
+              carousel.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+            pointerActive = false;
+            isDragging = false;
+            return;
+          } else {
+            // not enough movement yet
+            return;
+          }
+        }
+
+        // If we reach here, it's a horizontal drag — prevent vertical scroll
+        e.preventDefault();
+        carousel.scrollLeft = scrollStart - dx;
+      });
+
+      carousel.addEventListener("pointerup", function (e) {
+        if (!pointerActive) return;
+        pointerActive = false;
+        try {
+          carousel.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        if (!isDragging) return;
+        // snap to nearest card
+        const card = carousel.querySelector('[class*="snap-center"]');
+        const cardWidth = (card && card.clientWidth) || Math.round(carousel.clientWidth * 0.8);
+        const gap = 16; // approximate gap used in layout
+        const idx = Math.round(carousel.scrollLeft / (cardWidth + gap));
+        carousel.scrollTo({
+          left: idx * (cardWidth + gap),
+          behavior: "smooth",
+        });
+        isDragging = false;
+      });
+      carousel.addEventListener("pointercancel", function () {
+        pointerActive = false;
+        isDragging = false;
+      });
+    })();
+
+    // --- Floating WhatsApp FAB visibility (keep original) ---
+    (function () {
+      try {
+        if (businessNumber && businessNumber.length >= 8 && whatsappFab) {
+          whatsappFab.classList.remove("hidden");
+        }
+      } catch (e) {}
+    })();
+
+    // --- Form submission handling & success popup (preserve behavior) ---
+    try {
+      const form = document.getElementById("contactForm");
+      const submitBtn = document.getElementById("submitBtn");
+      const btnText = document.getElementById("btnText");
+      const btnLoader = document.getElementById("btnLoader");
+
+      const successPopup = document.getElementById("successPopup");
+      const closePopupBtn = document.getElementById("closePopup");
+
+      if (form) {
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          if (!btnText || !btnLoader || !submitBtn) return;
+          btnText.textContent = "Sending...";
+          btnLoader.classList.remove("hidden");
+          submitBtn.disabled = true;
+          const formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            mode: "no-cors",
+          })
+            .finally(() => {
+              btnText.textContent = "Send Message";
+              btnLoader.classList.add("hidden");
+              submitBtn.disabled = false;
+              form.reset();
+              if (successPopup) {
+                successPopup.classList.remove("hidden");
+              }
+            });
+        });
+      }
+      if (closePopupBtn && successPopup) {
+        closePopupBtn.addEventListener("click", () => {
+          successPopup.classList.add("hidden");
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+</script>
   </body>
 </html>
